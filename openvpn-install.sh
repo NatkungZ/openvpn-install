@@ -430,6 +430,30 @@ verb 3" > /etc/openvpn/server/client-common.txt
 	echo "The client configuration is available in:" ~/"$client.ovpn"
 	echo "New clients can be added by running this script again."
 else
+
+	if [ $1 == "--gen-client" ]
+	then
+		if [ -z $2 ]
+		then
+			echo "Hint: --gen-client <client_name>"
+			exit 1
+		else
+			client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<< "$2")
+			while [[ -z "$client" || -e /etc/openvpn/server/easy-rsa/pki/issued/"$client".crt ]]; do
+				echo "$client: invalid name."
+				read -p "Name: " unsanitized_client
+				client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<< "$unsanitized_client")
+			done
+			cd /etc/openvpn/server/easy-rsa/
+			EASYRSA_CERT_EXPIRE=3650 ./easyrsa build-client-full "$client" nopass
+			# Generates the custom client.ovpn
+			new_client
+			echo
+			echo "$client added. Configuration available in:" ~/"$client.ovpn"
+			exit
+		fi
+	fi
+
 	clear
 	echo "OpenVPN is already installed."
 	echo
